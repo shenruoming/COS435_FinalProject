@@ -1,0 +1,20 @@
+data/
+
+# Models and checkpoints
+*.safetensors
+*.bin
+*.pt
+*.pth
+models/
+src/alfworld_lfm/models/
+src/alfworld_lfm/__pycache__/
+*.pyc
+
+# Data
+*.pkl
+data/
+src/alfworld_lfm/data/
+
+# Logs
+*.log
+training.log
