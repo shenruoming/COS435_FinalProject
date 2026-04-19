@@ -13,6 +13,7 @@ from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 from tqdm import tqdm
 from environment import VerbalizedALFWorld
 import glob
+from utils import format_context
 
 
 class ExpertDataset(Dataset):
@@ -35,6 +36,7 @@ class ExpertDataset(Dataset):
         print(f"Collecting {num_episodes} expert demonstrations...")
         for episode in tqdm(range(num_episodes)):
             instruction, obs, actions = env.reset()
+            reward = None
             
             # Flatten actions if needed
             if actions and isinstance(actions[0], list):
@@ -55,13 +57,13 @@ class ExpertDataset(Dataset):
                     
                     if expert_action and expert_action in actions:
                         # Add current step to trajectory BEFORE taking action
-                        trajectory.append({'obs': obs, 'action': expert_action})
+                        trajectory.append({'obs': obs, 'action': expert_action, 'reward': reward})
                         
                         # Use most recent context_window steps as input
                         recent_context = trajectory[-context_window:] if len(trajectory) >= context_window else trajectory
                         
                         # Format observation with context
-                        context_obs = self._format_context(instruction, recent_context, obs)
+                        context_obs = format_context(instruction, recent_context, obs)
                         
                         self.examples.append({
                             'input': context_obs,
@@ -101,22 +103,6 @@ class ExpertDataset(Dataset):
         
         print(f"Collected {len(self.examples)} examples")
         print(f"Train: {len(self.train_examples)}, Val: {len(self.val_examples)}")
-    
-    def _format_context(self, instruction, trajectory, current_obs):
-        """Format the observation with most recent steps"""
-        if not trajectory:
-            return f"Task: {instruction}\n\nCurrent observation: {current_obs}"
-        
-        context_str = ""
-        for i, step in enumerate(trajectory):
-            # Truncate long observations
-            obs_short = step['obs'][:300] + "..." if len(step['obs']) > 300 else step['obs']
-            context_str += f"Step {i+1}: {obs_short}\nAction: {step['action']}\n\n"
-        
-        # Truncate current observation
-        obs_short = current_obs[:300] + "..." if len(current_obs) > 300 else current_obs
-        
-        return f"Task: {instruction}\n\nPrevious steps:\n{context_str}\nCurrent observation: {obs_short}"
     
     def save(self, path):
         """Save collected examples to disk"""
