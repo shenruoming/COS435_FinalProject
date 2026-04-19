@@ -7,6 +7,8 @@ env:
 
 dataset:
   data_path: ${ALFWORLD_DATA}/json_2.1.1/train
+  eval_id_data_path: ${ALFWORLD_DATA}/json_2.1.1/valid_seen
+  eval_ood_data_path: ${ALFWORLD_DATA}/json_2.1.1/valid_unseen
   num_train_games: -1
   num_eval_games: -1
 
