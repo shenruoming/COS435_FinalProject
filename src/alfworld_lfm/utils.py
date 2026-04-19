@@ -1,4 +1,5 @@
-def format_context(self, instruction, trajectory, current_obs):
+# convert the trajectory (past 20 steps) into the input string for the policy
+def format_context(instruction, trajectory, current_obs):
     """Format the observation with most recent steps"""
     if not trajectory:
         return f"Task: {instruction}\n\nCurrent observation: {current_obs}"
