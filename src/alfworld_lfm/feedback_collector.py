@@ -13,10 +13,11 @@ import tenacity as T
 import logging
 import os
 from evaluate import load_trajectories
+import argparse
+from llm_critic import LLM_Critic
 
 
 SEED = 37
-GEMINI_API_KEY = "AIzaSyBZiupbLWPzSqtvJ-g9cG9gO6vDbiu0U08"
 
 PROMPT = """
 You will be shown a playthrough for solving a task. Afterwards, answer some questions about how you performed.
@@ -32,6 +33,7 @@ def connect_gemini():
 
 @T.retry(stop=T.stop_after_attempt(20), wait=T.wait_fixed(10), after=lambda s: logging.error(repr(s)))
 def get_gemini_response(prompt, client):
+    print(prompt)
     response = client.models.generate_content(
         model='gemini-2.5-flash-lite',
         contents=prompt,
@@ -65,33 +67,33 @@ def get_windows(trajectories, win_len=20):
             windows.append(PROMPT.format(window=prompt))
     return windows
 
-def get_all_feedback(trajectories, dry_run=False):
-    client = connect_gemini()
+def get_all_feedback(trajectories, output_path):
+    # client = connect_gemini()
+    llm = LLM_Critic()
     limit = 10000
     window_prompts = get_windows(trajectories)
+    print(window_prompts)
     window_prompts = window_prompts[:limit]
     feedback_dataset = []
 
     save_path = "./llm_feedback"
-    if not os.path.isdir(save_path):
-        os.makedirs(save_path)
+    if not os.path.isdir(output_path):
+        os.makedirs(output_path)
 
     for i, prompt in tqdm.tqdm(enumerate(window_prompts), total=len(window_prompts)):
-        if not dry_run:
-                try:
-                    response = get_gemini_response(prompt, client)
-                    print(f"Gemini response: {response}")
-                    llm_feedback = {'prompt': prompt, 'response': response}
+        try:
+            response = llm.query_llm(prompt)
+            llm_feedback = {'prompt': prompt, 'response': response}
 
-                except Exception as e:
-                    print(e)
-                    continue
-                else:
-                    feedback_dataset.append(llm_feedback)
-                    fout = os.path.join(save_path, 'feedback.{}.json.bz2'.format(i))
+        except Exception as e:
+            print(e)
+            continue
+        else:
+            feedback_dataset.append(llm_feedback)
+            fout = os.path.join(output_path, 'feedback.{}.json.bz2'.format(i))
 
-                    with bz2.open(fout, 'wt') as f:
-                        json.dump(llm_feedback, f, indent=2)
+            with bz2.open(fout, 'wt') as f:
+                json.dump(llm_feedback, f, indent=2)
     
     print('done!')
     return feedback_dataset
@@ -99,9 +101,19 @@ def get_all_feedback(trajectories, dry_run=False):
 
 def main():
     TRAJ_DIR = ''
+    
+    parser = argparse.ArgumentParser(description='Collect LLM feedback on trajectories')
+    parser.add_argument('--trajectories_path', type=str,
+                        help='Path to saved trajectories')
+    parser.add_argument('--no_save', action='store_true',
+                        help='Do not save trajectories')
+    parser.add_argument('--output_dir', type=str, default='./llm_feedback',
+                        help='Directory to save trajectories')
+    
+    args = parser.parse_args()
 
-    trajectories = load_trajectories(TRAJ_DIR)
-    feedback_data = get_all_feedback(trajectories)
+    trajectories = load_trajectories(parser.trajectories_path)
+    feedback_data = get_all_feedback(trajectories, output_path=parser.output_dir)
 
 
 if __name__ == "__main__":
