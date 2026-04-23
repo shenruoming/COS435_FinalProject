@@ -53,6 +53,17 @@ class VerbalizedALFWorld:
         self._env = self._env.init_env(batch_size=1)
         self.current_instruction = None
 
+    def num_settings(self):
+        """Return number of available environments in current split."""
+        if hasattr(self._env, 'num_games'):
+            return self._env.num_games
+        elif self.split == 'train':
+            return 3553
+        elif self.split == 'eval_out_of_distribution':
+            return 134
+        else:
+            return 500
+
     def reset(self):
         obs, info = self._env.reset()
         obs_text = obs[0]
