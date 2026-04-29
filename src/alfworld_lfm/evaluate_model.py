@@ -33,8 +33,8 @@ def evaluate_model(model_path, split='eval_out_of_distribution',
         output_dir: Directory to save trajectories (default: ./eval_results/)
     
     Returns:
-        task_completion_rate: float (e.g., 0.626 for 62.6%)
-        outcomes: list of booleans (True = task completed)
+        task_completion_rate: float 
+        outcomes: list of booleans 
     """
     
     # Setup output directory
@@ -198,51 +198,6 @@ def load_trajectories(output_dir):
     return trajectories
 
 
-def evaluate_all_models():
-    """Evaluate all trained models and compare to paper's Table 3."""
-    
-    models = {
-        "BC": "./models/bc_alfworld_best",
-        "BC_final": "./models/bc_alfworld_final",
-        # Add more as you train them:
-        # "ACTPRED": "./models/actpred_best",
-        # "LFM": "./models/lfm_best",
-    }
-    
-    results = {}
-    for name, path in models.items():
-        if os.path.exists(path):
-            print(f"\n{'='*50}")
-            print(f"Evaluating {name}")
-            print(f"{'='*50}")
-            rate, _ = evaluate_model(path, save_trajectories=True)
-            results[name] = rate
-        else:
-            print(f"Skipping {name} - model not found at {path}")
-    
-    # Print comparison table
-    print("\n" + "="*60)
-    print("RESULTS COMPARISON")
-    print("="*60)
-    print(f"{'Method':<15} {'Our Result':<15} {'Paper (Table 3)':<15}")
-    print("-"*60)
-    
-    paper_results = {
-        "BC": 0.626,
-        "ACTPRED": 0.560,
-        "LFM": 0.641,
-        "LFMA": 0.746,
-    }
-    
-    for name, our_result in results.items():
-        paper = paper_results.get(name, 0.0)
-        diff = our_result - paper
-        status = "✓" if abs(diff) < 0.05 else "⚠️"
-        print(f"{name:<15} {our_result:.3f} ({our_result*100:.1f}%)     {paper:.3f} ({paper*100:.1f}%)     {status}")
-    
-    print("="*60)
-
-
 if __name__ == "__main__":
     import argparse
     
@@ -262,10 +217,7 @@ if __name__ == "__main__":
     
     args = parser.parse_args()
     
-    if args.all:
-        evaluate_all_models()
-    else:
-        evaluate_model(
+    evaluate_model(
             args.model_path, 
             split=args.split, 
             num_episodes=args.num_episodes,
