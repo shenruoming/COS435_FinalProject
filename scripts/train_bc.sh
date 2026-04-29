@@ -9,8 +9,8 @@
 #SBATCH --cpus-per-task=4
 
 # Load modules
-module load anaconda3/2024.03
-module load cudatoolkit/12.1
+module load anaconda3/2024.10
+module load cudatoolkit/12.6
 
 # Activate virtual environment
 source ~/COS435_FinalProject/venv/bin/activate
