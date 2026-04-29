@@ -1,5 +1,6 @@
 """
 ActPred Baseline - uses Mistral LLM to predict actions directly
+Reference prompt_utils.py from original codebase for prompt construction
 """
 
 import os
