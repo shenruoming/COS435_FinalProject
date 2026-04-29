@@ -23,16 +23,14 @@ class ExpertDataset(Dataset):
     def __init__(self, env, num_episodes=500, max_steps=50, context_window=20, load_path=None):
         self.context_window = context_window
         
-        # Try to load from disk first
         if load_path and os.path.exists(load_path):
             print(f"Loading existing dataset from {load_path}")
             self.load(load_path)
             return
         
-        # Otherwise collect new data
         self.examples = []
         
-        print(f"Collecting {num_episodes} expert demonstrations...")
+        print(f"Collecting {num_episodes} expert demonstrations with context window of {context widow}")
         for episode in tqdm(range(num_episodes)):
             instruction, obs, actions = env.reset()
             reward = None
@@ -49,7 +47,6 @@ class ExpertDataset(Dataset):
             while not done and step < max_steps:
                 expert_action = env.get_expert_action()
                 
-                # Handle expert action (could be list or string)
                 if expert_action:
                     if isinstance(expert_action, list):
                         expert_action = expert_action[0] if expert_action else None
@@ -72,14 +69,13 @@ class ExpertDataset(Dataset):
                         # Take the expert action
                         instruction, obs, reward, done, actions = env.step(expert_action)
                         
-                        # Flatten actions after step
                         if actions and isinstance(actions[0], list):
                             actions = actions[0]
                         
                         step += 1
                         continue
                 
-                # Fallback: take random action if expert action not available/invalid
+                # Our fallback is to take a random action if expert action not available/invalid
                 if actions:
                     # Take first action
                     first_action = actions[0] if isinstance(actions[0], str) else actions[0][0]
@@ -90,7 +86,7 @@ class ExpertDataset(Dataset):
                 else:
                     break
         
-        # Split into train/val (80/20) for early stopping
+        # 80/20 train/val split
         np.random.seed(42)
         indices = np.random.permutation(len(self.examples))
         split_idx = int(0.8 * len(self.examples))
@@ -103,8 +99,8 @@ class ExpertDataset(Dataset):
         print(f"Collected {len(self.examples)} examples")
         print(f"Train: {len(self.train_examples)}, Val: {len(self.val_examples)}")
     
+    # Save collected examples to disk for future use
     def save(self, path):
-        """Save collected examples to disk"""
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, 'wb') as f:
             pickle.dump({
@@ -114,8 +110,8 @@ class ExpertDataset(Dataset):
             }, f)
         print(f"Saved dataset to {path}")
     
+    # Load saved examples from disk
     def load(self, path):
-        """Load saved examples from disk"""
         with open(path, 'rb') as f:
             data = pickle.load(f)
         self.train_examples = data['train_examples']
@@ -126,7 +122,6 @@ class ExpertDataset(Dataset):
         print(f"Train: {len(self.train_examples)}, Val: {len(self.val_examples)}")
     
     def get_train_loader(self, batch_size):
-        """Return DataLoader for training examples"""
         class SimpleDataset(Dataset):
             def __init__(self, data):
                 self.data = data
