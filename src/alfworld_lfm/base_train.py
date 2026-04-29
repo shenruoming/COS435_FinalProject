@@ -12,6 +12,7 @@ from torch.optim import AdamW
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, get_linear_schedule_with_warmup
 from tqdm import tqdm
 from environment import VerbalizedALFWorld
+from utils import format_context
 
 
 class BaseExpertDataset(Dataset):
@@ -20,13 +21,16 @@ class BaseExpertDataset(Dataset):
     Subclasses must implement _get_expert_action() method.
     """
     
-    def __init__(self, env, num_episodes=500, max_steps=50, context_window=20, load_path=None):
+    def __init__(self, env, num_episodes=20, max_steps=50, context_window=20,
+                 load_path=None, include_feedback=False, feedback_data=None):
         self.context_window = context_window
         
         # Try to load from disk first
         if load_path and os.path.exists(load_path):
             print(f"Loading existing dataset from {load_path}")
             self.load(load_path)
+            if include_feedback:
+                self.train_examples.extend(feedback_data)
             return
         
         # Otherwise collect new data
@@ -44,6 +48,7 @@ class BaseExpertDataset(Dataset):
             trajectory = []
             done = False
             step = 0
+            reward = 0.0
             
             while not done and step < max_steps:
                 # Subclasses implement this method
@@ -51,29 +56,25 @@ class BaseExpertDataset(Dataset):
                 
                 if expert_action and expert_action in actions:
                     # Add current step to trajectory BEFORE taking action
-                    trajectory.append({
-                        'obs': obs, 
-                        'action': expert_action,
-                        'reward': None
-                    })
-
+                    # trajectory.append({'obs': obs, 'action': expert_action})
+                    
                     # Use most recent context_window steps as input
                     recent_context = trajectory[-context_window:] if len(trajectory) >= context_window else trajectory
                     
                     # Format observation with context
-                    context_obs = self._format_context(instruction, recent_context, obs)
-
+                    context_obs = format_context(instruction, recent_context, obs)
+                    
                     self.examples.append({
                         'input': context_obs,
                         'target': expert_action
                     })
-
+                                    
+                    # Add current step to trajectory BEFORE taking action
+                    trajectory.append({'obs': obs, 'action': expert_action, 'reward': reward})
+                    
                     # Take the expert action
                     instruction, obs, reward, done, actions = env.step(expert_action)
-
-                    if trajectory:
-                        trajectory[-1]['reward'] = reward  # Update reward for the step we just took
-                                    
+                    
                     # Flatten actions after step
                     if actions and isinstance(actions[0], list):
                         actions = actions[0]
@@ -83,6 +84,7 @@ class BaseExpertDataset(Dataset):
                 
                 # Fallback: take random action if expert action not available/invalid
                 if actions:
+                    print("expert action not available, taking random")
                     first_action = actions[0] if isinstance(actions[0], str) else actions[0][0]
                     instruction, obs, reward, done, actions = env.step(first_action)
                     if actions and isinstance(actions[0], list):
@@ -243,7 +245,7 @@ def train_imitation_learning(dataset_class, model_name, dataset_path, model_save
             targets = tokenizer(targets_text, padding=True, truncation=True, 
                                max_length=max_len_output, return_tensors='pt').to(device)
             
-            labels = targets['input_ids']
+            labels = targets['input_ids'].clone()
             labels[labels == tokenizer.pad_token_id] = -100
             
             outputs = model(input_ids=inputs['input_ids'], 
@@ -263,6 +265,7 @@ def train_imitation_learning(dataset_class, model_name, dataset_path, model_save
                 global_step += 1
                 
                 if global_step % val_interval == 0 and len(val_loader) > 0:
+                    print("got to validation")
                     model.eval()
                     val_losses = []
                     with torch.no_grad():
@@ -276,7 +279,7 @@ def train_imitation_learning(dataset_class, model_name, dataset_path, model_save
                             val_targets = tokenizer([b['target'] for b in val_batch], 
                                                     padding=True, truncation=True, 
                                                     max_length=max_len_output, return_tensors='pt').to(device)
-                            val_labels = val_targets['input_ids']
+                            val_labels = val_targets['input_ids'].clone()
                             val_labels[val_labels == tokenizer.pad_token_id] = -100
                             
                             val_outputs = model(input_ids=val_inputs['input_ids'], 
