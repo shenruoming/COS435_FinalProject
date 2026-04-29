@@ -17,6 +17,7 @@ from llm_critic import LLM_Critic
 
 SEED = 37
 
+# prompt directly matches original codebase
 PROMPT = """
 You will be shown a playthrough for solving a task. Afterwards, answer some questions about how you performed.
 {window}
@@ -30,13 +31,13 @@ def get_windows(trajectories, win_len=20):
         traj = t['traj']
         if len(traj) == 0:
             continue
-        # TODO: get instruction (how to store in trajectory?)
         task = None
         for start in range(1, len(traj), win_len):
             end = min(len(traj), start+win_len)
             window = traj[start:end]
             step_tm1 = traj[start-1]
             task = step_tm1['after']['obs']['instruction']
+            # prompt formatting matches original codebase
             replay = ['Task: {}\nBefore: {}'.format(task, step_tm1['after']['obs']['observation'])]
             for i, step in enumerate(window):
                 replay.append('-' * 10)

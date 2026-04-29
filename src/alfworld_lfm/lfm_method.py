@@ -1,17 +1,7 @@
-"""
-Behavioral Cloning baseline - uses ALFWorld's built-in expert
-"""
-
 from base_train import BaseExpertDataset, train_imitation_learning
+from bc import BCDataset
 
-
-class BCDataset(BaseExpertDataset):
-    """BC --> uses ALFWorld's built-in expert"""
-
-    def _get_expert_action(self, env, instruction, obs, actions, trajectory):
-        """Gets expert action from ALFWorld's built-in expert"""
-        return env.get_expert_action()
-
+OUTPUT_PATH = 
 def create_desirable_behavior_dataset():
     data = []
     output_dir = Path(OUTPUT_PATH)
@@ -20,9 +10,9 @@ def create_desirable_behavior_dataset():
         with bz2.open(f, 'rt') as file:
             traj = json.load(file)
             for ex in traj:
-                    if ex['llm_pred'].startswith('Yes'):
-                        # kept.add(fname)
-                        data.append(dict(input=ex['prompt'], target=ex['action']))
+                if ex['llm_pred']:
+                    # kept.add(fname)
+                    data.append(dict(input=ex['prompt'], target=ex['action']))
     return data
 
 def train_model_with_feedback(feedback_data):

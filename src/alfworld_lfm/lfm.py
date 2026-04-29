@@ -203,8 +203,6 @@ class LanguageFeedbackModel:
                 if not isinstance(val_batch, list):
                     val_batch = list(val_batch)
 
-                # _ = self.training_step(val_batch, loss_name='val_loss')
-
                 # Extract inputs and targets
                 inputs_text = [b['input'] for b in val_batch]
                 targets_text = [b['target'] for b in val_batch]
@@ -358,14 +356,17 @@ class LanguageFeedbackModel:
         test_dataset = FeedbackDataset(feedback_data=processed_trajectories, test_only=True)
 
         test_loader = test_dataset.get_test_loader(BATCH_SIZE)
+        
         predictions = []
-        for batch in test_loader:
+
+        progress_bar = tqdm(test_loader, desc=f"Predicting")
+        for batch in progress_bar:
             preds = self.predict(batch)
             predictions.extend(preds)
 
         all_traj_steps = defaultdict(list)
 
-        assert len(predictions) == len(test_dataset), 'got {} predictions for {} input examples'.format(len(predictions), len(test_dataset))
+        assert len(predictions) == len(test_dataset.test_examples), 'got {} predictions for {} input examples'.format(len(predictions), len(test_dataset.test_examples))
 
         idx = 0
         for ex, pred in zip(processed_trajectories, predictions):
@@ -420,7 +421,9 @@ if __name__ == "__main__":
         lfm.train()
     elif args.use:
         lfm = LanguageFeedbackModel(model_path=LFM_MODEL_PATH)
+        print("Loading trajectories")
         trajectories = load_trajectories(TRAJECTORIES_PATH)
+        print("Generating feedback")
         lfm.infer_feedback(trajectories)
 
 

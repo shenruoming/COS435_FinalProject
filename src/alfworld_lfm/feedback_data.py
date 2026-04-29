@@ -21,6 +21,7 @@ class FeedbackDataset(Dataset):
         if test_only:
             self.test_examples = []
             for r in feedback_data:
+                # prompt wording matches original codebase
                 prompt = 'Task: {}\nBefore: {}\nAction: {}\nAfter: {}\nQuestion: was this helpful?\nAnswer:'.format(r['task'], r['before'], r['action'], r['after'])
                 feedback = 'Yes' if r['label'] else 'No'
                 self.test_examples.append({
@@ -29,14 +30,13 @@ class FeedbackDataset(Dataset):
                 })
             return
 
-
-
         # Try to load from disk first
         if load_path and os.path.exists(load_path):
             print(f"Loading existing dataset from {load_path}")
             self.load(load_path)
             return
 
+        # regular expressions match original codebase
         task_re = re.compile(r'Task: ([^\n]+)\n')
         before_re = re.compile(r'Before: ([^\n]+)\n')
         step_re = re.compile(r'Step (\d+)\nYour action: ([^\n]+?)\nResult: (.+?)\-\-\-', re.DOTALL)

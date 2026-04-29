@@ -1,8 +1,3 @@
-"""
-Policy module for BC agent inference.
-Exact replication of LMAgent from original codebase.
-"""
-
 import torch
 import torch.nn.functional as F
 import numpy as np
@@ -13,6 +8,7 @@ from torch.distributions import Categorical
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 from pathlib import Path
 
+# bc policy (parallels LMAgent from original codebase)
 class Policy:
     
     def __init__(
@@ -47,8 +43,6 @@ class Policy:
 
         all_losses = []
         all_labels = []
-
-
 
         with torch.no_grad():
             # Encode input once instead of repeating per batch

@@ -4,6 +4,7 @@ from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline, BitsAndB
 
 import torch
 
+# citation: https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.3
 class LLM_Critic:
     def __init__(self):
         self.pipe = pipeline("text-generation", model="mistralai/Mistral-7B-Instruct-v0.3")
