@@ -10,7 +10,7 @@ import json
 import tenacity as T
 import logging
 import os
-from evaluate import load_trajectories
+from evaluate_model import load_trajectories
 import argparse
 from llm_critic import LLM_Critic
 

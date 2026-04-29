@@ -2,10 +2,6 @@ from huggingface_hub import snapshot_download
 from pathlib import Path
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline, BitsAndBytesConfig
 
-# from mistral_inference.transformer import Transformer
-# from mistral_inference.generate import generate
-
-
 import torch
 
 class LLM_Critic:
@@ -47,20 +43,5 @@ if __name__ == "__main__":
     # model_path = Path.home().joinpath('Desktop', 'COS435_Assignments', 'COS435_FinalProject', 'mistral_models', '7B-Instruct-v0.3')
     # if not model_path.is_dir():
     #     download_model()
-
-    # MODEL_NAME = "mistralai/Mistral-7B-Instruct-v0.3"
-
-    # gpu_available = torch.cuda.is_available()
-
-    # if gpu_available:
-    #     print("gpu")
-    #     model, tokenizer = load_model(model_path, MODEL_NAME, gpu_available)
-    #     result = query_llm_gpu("what is your name?")
-    # else:
-    #     print("no gpu")
-    #     model, tokenizer = load_model(model_path, MODEL_NAME, gpu_available)
-    #     print("finished loading model")
-    #     result = query_llm_cpu_2(model, tokenizer, "what is your name?")
-    #     print(result)
 
     
