@@ -128,7 +128,7 @@ def evaluate_model(model_path, split='eval_out_of_distribution',
             })
 
             # Store for context window
-            trajectory_steps.append({'obs': obs, 'action': action, 'reward': reward})  # ← Store reward for tracking
+            trajectory_steps.append({'obs': obs, 'action': action, 'reward': reward})  
             
             if done:
                 if reward > 0:

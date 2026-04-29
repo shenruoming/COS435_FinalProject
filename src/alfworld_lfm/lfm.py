@@ -55,7 +55,7 @@ class LanguageFeedbackModel:
 
         print(f"Loading feedback dataset from {DATASET_PATH}")
         self.dataset = FeedbackDataset(
-            load_path=DATASET_PATH  # This will load if exists
+            load_path=DATASET_PATH  
         )
         print("Dataset fetched")
 
@@ -111,8 +111,8 @@ class LanguageFeedbackModel:
         os.makedirs("./models", exist_ok=True)
         self.model.save_pretrained(LFM_MODEL_PATH)
         self.tokenizer.save_pretrained(LFM_MODEL_PATH)
-        print(f"\nTraining complete! Best val loss: {best_val_loss}")
-        print(f"Final model sdaved at {LFM_MODEL_PATH}")
+        print(f"\nBest val loss: {best_val_loss}")
+        print(f"Final model saved at {LFM_MODEL_PATH}")
 
     
     def train_one_epoch(self, epoch, global_step, best_val_loss, train_loader, val_loader, optimizer, scheduler):

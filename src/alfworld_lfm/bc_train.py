@@ -196,7 +196,7 @@ def train_bc():
         env, 
         num_episodes=NUM_EPISODES, 
         context_window=CONTEXT_WINDOW,
-        load_path=DATASET_PATH  # This will load if exists
+        load_path=DATASET_PATH 
     )
     
     dataset.save(DATASET_PATH)

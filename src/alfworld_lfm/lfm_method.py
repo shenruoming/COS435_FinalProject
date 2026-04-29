@@ -11,7 +11,6 @@ def create_desirable_behavior_dataset():
             traj = json.load(file)
             for ex in traj:
                 if ex['llm_pred']:
-                    # kept.add(fname)
                     data.append(dict(input=ex['prompt'], target=ex['action']))
     return data
 
