@@ -22,14 +22,14 @@ class VerbalizedALFWorld:
         self._gold_action = None
 
         # Set data path
-        data_path = os.path.expanduser('~/COS435_FinalProject/data')
+        data_path = os.path.expanduser('~/COS435/COS435_FinalProject/data')
         os.environ['ALFWORLD_DATA'] = data_path
 
         # Create data directory
         os.makedirs(data_path, exist_ok=True)
         
         # Path to your config file
-        config_path = Path.home() / 'COS435_FinalProject' / 'configs' / 'alfworld_config.yaml'
+        config_path = Path.home() / 'COS435' / 'COS435_FinalProject' / 'configs' / 'alfworld_config.yaml'
         
         # Set sys.argv for ALFWorld's config loader
         sys.argv = [sys.argv[0], str(config_path)]
@@ -39,6 +39,12 @@ class VerbalizedALFWorld:
         self.config = generic.load_config()
         print("Config keys:", self.config.keys())  
         print("Full config:", self.config)  
+
+        # Manually resolve ${ALFWORLD_DATA} since config doesn't auto-expand it
+        self.config['dataset']['data_path'] = f"{data_path}/json_2.1.1/train"
+        self.config['dataset']['eval_id_data_path'] = f"{data_path}/json_2.1.1/valid_seen"
+        self.config['dataset']['eval_ood_data_path'] = f"{data_path}/json_2.1.1/valid_unseen"
+
         
         # Override split-specific settings
         if split == 'train':
@@ -111,9 +117,10 @@ class VerbalizedALFWorld:
         obs_text = obs[0]
         
         # Update expert plan from info (flatten if needed)
+        # ALFWorld updates expert_plan to be the REMAINING plan after each step
+        # so we always read index 0 of the updated plan
         if 'extra.expert_plan' in info:
             raw_plan = info.get('extra.expert_plan', [])
-            # Flatten: [['look']] -> ['look']
             if raw_plan and isinstance(raw_plan, list) and len(raw_plan) > 0:
                 if isinstance(raw_plan[0], list):
                     self._expert_plan = [item[0] for item in raw_plan if item]
@@ -121,14 +128,9 @@ class VerbalizedALFWorld:
                     self._expert_plan = raw_plan
             else:
                 self._expert_plan = []
-            self._expert_step_idx = 0  # Reset index for new plan
-        
-        # Get current expert action based on step index
-        if hasattr(self, '_expert_plan') and self._expert_plan and self._expert_step_idx < len(self._expert_plan):
-            self._gold_action = self._expert_plan[self._expert_step_idx]
-            self._expert_step_idx += 1
-        else:
-            self._gold_action = None
+            
+            # Always read index 0 since ALFWorld removes consumed actions from front
+            self._gold_action = self._expert_plan[0] if self._expert_plan else None
         
         # Parse observation
         lines = obs_text.strip().split('\n')
@@ -144,7 +146,7 @@ class VerbalizedALFWorld:
         reward_value = reward[0] if isinstance(reward, tuple) else reward
         done_value = done[0] if isinstance(done, tuple) else done
         
-        return self.current_instruction, verbalized_obs, float(reward_value), done_value, admissible_actions 
+        return self.current_instruction, verbalized_obs, float(reward_value), done_value, admissible_actions
 
     def verbalize(self, observation):
         # ALFWorld observations are already verbalized --> return directly

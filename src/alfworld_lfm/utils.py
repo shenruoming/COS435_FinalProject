@@ -2,7 +2,7 @@
 def format_context(instruction, trajectory, current_obs, cumulative_reward=None):
     """Format the observation with most recent steps"""
     if cumulative_reward is None:
-        cumulative_reward = sum(step.get('reward', 0) for step in trajectory)
+        cumulative_reward = sum(step.get('reward', 0) or 0 for step in trajectory)
     
     if not trajectory:
         return f"Task: {instruction}\nScore: {cumulative_reward}\n\nCurrent observation: {current_obs}"

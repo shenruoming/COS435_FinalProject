@@ -14,7 +14,7 @@ from tqdm import tqdm
 from environment import VerbalizedALFWorld
 import glob
 from utils import format_context
-
+DEBUG = os.environ.get("DEBUG", "0") == "1"
 
 class ExpertDataset(Dataset):
     """
@@ -49,6 +49,9 @@ class ExpertDataset(Dataset):
             
             while not done and step < max_steps:
                 expert_action = env.get_expert_action()
+
+                if DEBUG and episode < 3:  # print first 3 steps of each episode
+                    print(f"  Episode {episode+1} step {step+1}: expert='{expert_action}'")
                 
                 # Handle expert action (could be list or string)
                 if expert_action:
@@ -196,6 +199,20 @@ def train_bc():
     
     # Path for saving dataset
     DATASET_PATH = "./src/alfworld_lfm/data/bc_dataset_500eps.pkl"
+
+    MODEL_NAME = "google/flan-t5-small" if DEBUG else "google/flan-t5-large"
+    BATCH_SIZE = 4 if DEBUG else 20
+    ACCUMULATE_GRAD_BATCHES = 2 if DEBUG else 10
+    LEARNING_RATE = 5e-5
+    NUM_EPOCHS = 3 if DEBUG else 20
+    NUM_EPISODES = 20 if DEBUG else 500
+    CONTEXT_WINDOW = 20
+    VAL_INTERVAL = 5 if DEBUG else 200
+    GRAD_CLIP = 5.0
+    MAX_LEN_INPUT = 256 if DEBUG else 2048
+    MAX_LEN_OUTPUT = 16
+
+    DATASET_PATH = "./debug_bc_dataset.pkl" if DEBUG else "./src/alfworld_lfm/data/bc_dataset_500eps.pkl"
     
     # Create environment
     print("Initializing environment...")
@@ -211,6 +228,14 @@ def train_bc():
     
     # Save dataset for future use
     dataset.save(DATASET_PATH)
+
+    from collections import Counter
+
+    action_counts = Counter(ex['target'] for ex in dataset.examples)
+    print("\nTop 10 most common target actions:")
+    for action, count in action_counts.most_common(10):
+        print(f"  {count:4d}: {action}")
+    print(f"\nTotal unique actions: {len(action_counts)}")
     
     # Create data loaders
     train_loader = dataset.get_train_loader(BATCH_SIZE)
@@ -224,7 +249,12 @@ def train_bc():
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
     
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    if torch.cuda.is_available():
+        device = 'cuda'
+    elif torch.backends.mps.is_available():
+        device = 'mps'
+    else:
+        device = 'cpu'
     model.to(device)
 
     optimizer = AdamW(model.parameters(), lr=LEARNING_RATE)
