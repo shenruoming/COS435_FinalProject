@@ -13,7 +13,7 @@ module load anaconda3/2024.10
 module load cudatoolkit/12.6
 
 # Activate virtual environment
-source activate cos435
+source /usr/licensed/anaconda3/2024.10/bin/activate cos435
 
 # Set data path
 export ALFWORLD_DATA=~/COS435_FinalProject/data

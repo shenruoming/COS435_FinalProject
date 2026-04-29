@@ -29,7 +29,10 @@ class VerbalizedALFWorld:
         os.makedirs(data_path, exist_ok=True)
         
         # Path to your config file
-        config_path = Path.home() / 'COS435' / 'COS435_FinalProject' / 'configs' / 'alfworld_config.yaml'
+        # Try cluster path first, fall back to Mac path
+        cluster_path = Path.home() / 'COS435_FinalProject' / 'configs' / 'alfworld_config.yaml'
+        mac_path = Path.home() / 'COS435' / 'COS435_FinalProject' / 'configs' / 'alfworld_config.yaml'
+        config_path = cluster_path if cluster_path.exists() else mac_path
         
         # Set sys.argv for ALFWorld's config loader
         sys.argv = [sys.argv[0], str(config_path)]
