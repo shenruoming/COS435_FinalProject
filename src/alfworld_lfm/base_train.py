@@ -51,22 +51,29 @@ class BaseExpertDataset(Dataset):
                 
                 if expert_action and expert_action in actions:
                     # Add current step to trajectory BEFORE taking action
-                    trajectory.append({'obs': obs, 'action': expert_action})
-                    
+                    trajectory.append({
+                        'obs': obs, 
+                        'action': expert_action,
+                        'reward': None
+                    })
+
                     # Use most recent context_window steps as input
                     recent_context = trajectory[-context_window:] if len(trajectory) >= context_window else trajectory
                     
                     # Format observation with context
                     context_obs = self._format_context(instruction, recent_context, obs)
-                    
+
                     self.examples.append({
                         'input': context_obs,
                         'target': expert_action
                     })
-                    
+
                     # Take the expert action
                     instruction, obs, reward, done, actions = env.step(expert_action)
-                    
+
+                    if trajectory:
+                        trajectory[-1]['reward'] = reward  # Update reward for the step we just took
+                                    
                     # Flatten actions after step
                     if actions and isinstance(actions[0], list):
                         actions = actions[0]
@@ -172,6 +179,7 @@ class BaseExpertDataset(Dataset):
 
 
 def train_imitation_learning(dataset_class, model_name, dataset_path, model_save_path, 
+                              num_episodes=500, max_steps=50, context_window=20,
                               num_epochs=20, batch_size=20, accumulate_grad_batches=10,
                               learning_rate=5e-5, val_interval=200, grad_clip=5.0,
                               max_len_input=2048, max_len_output=16):
@@ -185,7 +193,8 @@ def train_imitation_learning(dataset_class, model_name, dataset_path, model_save
     env = VerbalizedALFWorld(split='train')
     
     # Load or collect dataset
-    dataset = dataset_class(env, load_path=dataset_path)
+    dataset = dataset_class(env, num_episodes=num_episodes, max_steps=max_steps,
+                            context_window=context_window, load_path=dataset_path)
     dataset.save(dataset_path)
     
     # Create data loaders
