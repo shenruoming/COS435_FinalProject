@@ -1,8 +1,6 @@
 import os
 import re
 import bz2
-import copy
-import glob
 import random
 import numpy as np
 import json
@@ -16,9 +14,22 @@ from torch.utils.data import Dataset, DataLoader
 
 class FeedbackDataset(Dataset):
 
-    def __init__(self, feedback_data, p_pos=0.5, max_len_input=None, max_len_output=None, load_path=None):
+    def __init__(self, feedback_data=None, p_pos=0.5, max_len_input=512, max_len_output=32, load_path=None, test_only=False):
         self.max_len_input = max_len_input
         self.max_len_output = max_len_output
+
+        if test_only:
+            self.test_examples = []
+            for r in feedback_data:
+                prompt = 'Task: {}\nBefore: {}\nAction: {}\nAfter: {}\nQuestion: was this helpful?\nAnswer:'.format(r['task'], r['before'], r['action'], r['after'])
+                feedback = 'Yes' if r['label'] else 'No'
+                self.test_examples.append({
+                    'input': prompt,
+                    'target': feedback
+                })
+            return
+
+
 
         # Try to load from disk first
         if load_path and os.path.exists(load_path):
@@ -29,8 +40,6 @@ class FeedbackDataset(Dataset):
         task_re = re.compile(r'Task: ([^\n]+)\n')
         before_re = re.compile(r'Before: ([^\n]+)\n')
         step_re = re.compile(r'Step (\d+)\nYour action: ([^\n]+?)\nResult: (.+?)\-\-\-', re.DOTALL)
-        feedback_re = re.compile(r'\- ([^:]+): ([^\n]+)\n')
-        feedback_step_re = re.compile(r'\d+')
 
         good_feedback_step_re = re.compile(r'Step (\d+)')
 
@@ -44,7 +53,7 @@ class FeedbackDataset(Dataset):
             before = before_re.findall(ex['prompt'])[0].rstrip('. ')
             feedback = defaultdict(list)
 
-            for step_str in feedback_step_re.findall(ex['response']):
+            for step_str in good_feedback_step_re.findall(ex['response']):
                 feedback[step_str].append("")
 
             steps = []
@@ -61,24 +70,19 @@ class FeedbackDataset(Dataset):
                 before = after
 
             proc.extend(steps)
-        if p_pos:
-            pos = [x for x in proc if x['label']]
-            neg = [x for x in proc if not x['label']]
-            random.Random(0).shuffle(neg)
-            cat = []
-            cat.extend(pos)
-            cat.extend(neg)
-            # cat.extend(neg[:int(len(pos) / p_pos) - len(pos)])
-            # cat = pos + neg[:int(len(pos) / p_pos) - len(pos)]
-            random.Random(0).shuffle(cat)
-            proc = cat
+        # if p_pos:
+        #     pos = [x for x in proc if x['label']]
+        #     neg = [x for x in proc if not x['label']]
+        #     random.Random(0).shuffle(neg)
+        #     cat = []
+        #     # TODO: fix this
+        #     cat.extend(pos)
+        #     cat.extend(neg)
+        #     # cat.extend(neg[:int(len(pos) / p_pos) - len(pos)])
+        #     # cat = pos + neg[:int(len(pos) / p_pos) - len(pos)]
+        #     random.Random(0).shuffle(cat)
 
-        #     print(pos)
-        #     print(neg)
-        #     print(cat)
 
-        # print(proc)
-        labels = Counter([x['label'] for x in proc])
 
         self.data = []
         for r in proc:
@@ -88,8 +92,6 @@ class FeedbackDataset(Dataset):
                 'input': prompt,
                 'target': feedback
             })
-            if feedback == 'Yes':
-                print("feedback is yes")
 
         np.random.seed(42)
         indices = np.random.permutation(len(self.data))
@@ -100,12 +102,10 @@ class FeedbackDataset(Dataset):
         
         self.train_examples = [self.data[i] for i in train_indices]
         self.val_examples = [self.data[i] for i in val_indices]
-        print(len(self.train_examples))
 
 
-    def __getitem__(self, key):
-        return self.data[key]
-    
+    # def __getitem__(self, key):
+    #     return self.data[key]
     
     def save(self, path):
         """Save collected examples to disk"""
@@ -171,17 +171,38 @@ class FeedbackDataset(Dataset):
             batch_size=batch_size,
             collate_fn=collate_fn
         )
+    
+    def get_test_loader(self, batch_size):
+        """Return DataLoader for test examples"""
+        class SimpleDataset(Dataset):
+            def __init__(self, data):
+                self.data = data
+            
+            def __len__(self):
+                return len(self.data)
+            
+            def __getitem__(self, idx):
+                item = self.data[idx]
+                return {'input': item['input'], 'target': item['target']}
+        
+        def collate_fn(batch):
+            return batch
+        
+        return DataLoader(
+            SimpleDataset(self.test_examples), 
+            batch_size=batch_size,
+            collate_fn=collate_fn
+        )
 
 def make_dataset(input_path):
     data = []
     for fname in input_path.glob('*.json.bz2'):
         with bz2.open(fname, 'rt') as f:
             data.append(json.load(f))
-    return FeedbackDataset(data)
-
+    return FeedbackDataset(feedback_data=data)
 
 if __name__ == "__main__":
-    LLM_INPUT_PATH = Path('./llm_feedback')
-    DATASET_OUTPUT_PATH = './lfm/feedback_data'
+    LLM_INPUT_PATH = Path('./llm_feedback_new')
+    DATASET_OUTPUT_PATH = './lfm/feedback_data_new'
     dataset = make_dataset(LLM_INPUT_PATH)
     dataset.save(DATASET_OUTPUT_PATH)
