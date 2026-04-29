@@ -182,7 +182,7 @@ def train_imitation_learning(dataset_class, model_name, dataset_path, model_save
                               num_episodes=500, max_steps=50, context_window=20,
                               num_epochs=20, batch_size=20, accumulate_grad_batches=10,
                               learning_rate=5e-5, val_interval=200, grad_clip=5.0,
-                              max_len_input=2048, max_len_output=16):
+                              max_len_input=2048, max_len_output=16, use_gpu=True):
     """
     Generic training function for imitation learning baselines.
     Works for BC, ACTPRED, and LFM.
@@ -194,7 +194,7 @@ def train_imitation_learning(dataset_class, model_name, dataset_path, model_save
     
     # Load or collect dataset
     dataset = dataset_class(env, num_episodes=num_episodes, max_steps=max_steps,
-                            context_window=context_window, load_path=dataset_path)
+                            context_window=context_window, load_path=dataset_path, use_gpu=use_gpu)
     dataset.save(dataset_path)
     
     # Create data loaders
