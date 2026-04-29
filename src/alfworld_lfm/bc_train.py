@@ -35,7 +35,6 @@ class ExpertDataset(Dataset):
             instruction, obs, actions = env.reset()
             reward = None
             
-            # Flatten actions if needed
             if actions and isinstance(actions[0], list):
                 actions = actions[0]
             
@@ -188,14 +187,11 @@ def train_bc():
     RESUME_CHECKPOINT = "./src/alfworld_lfm/models/checkpoints/latest.pt"  
     os.makedirs(CHECKPOINT_DIR, exist_ok=True)
     
-    # Path for saving dataset
     DATASET_PATH = "./src/alfworld_lfm/data/bc_dataset_500eps.pkl"
     
-    # Create environment
     print("Initializing environment...")
     env = VerbalizedALFWorld(split='train')
     
-    # Load or collect dataset
     dataset = ExpertDataset(
         env, 
         num_episodes=NUM_EPISODES, 
@@ -203,14 +199,11 @@ def train_bc():
         load_path=DATASET_PATH  # This will load if exists
     )
     
-    # Save dataset for future use
     dataset.save(DATASET_PATH)
     
-    # Create data loaders
     train_loader = dataset.get_train_loader(BATCH_SIZE)
     val_loader = dataset.get_val_loader(BATCH_SIZE)
     
-    # Load model
     print(f"Loading model: {MODEL_NAME}")
     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
     model = AutoModelForSeq2SeqLM.from_pretrained(MODEL_NAME)
@@ -223,7 +216,7 @@ def train_bc():
 
     optimizer = AdamW(model.parameters(), lr=LEARNING_RATE)
     
-    # Paper uses learning rate scheduler in train_bc.py, confgiure_optimizers()
+    # Paper uses learning rate scheduler in train_bc.py, configure_optimizers()
     from transformers import get_linear_schedule_with_warmup
     scheduler = get_linear_schedule_with_warmup(
         optimizer, 
@@ -232,7 +225,7 @@ def train_bc():
     )
 
     # Training loop
-    print(f"Starting training for {NUM_EPOCHS} epochs...")
+    print(f"Starting training for {NUM_EPOCHS} epochs")
     model.train()
     
     start_epoch = 0
@@ -257,7 +250,6 @@ def train_bc():
         progress_bar = tqdm(train_loader, desc=f"Epoch {epoch+1}/{NUM_EPOCHS}")
         
         for batch_idx, batch in enumerate(progress_bar):
-            # Ensure batch is list of dicts
             if not isinstance(batch, list):
                 batch = list(batch)
             
@@ -295,7 +287,7 @@ def train_bc():
             )
             
             loss = outputs.loss
-            loss = loss / ACCUMULATE_GRAD_BATCHES  # Normalize for accumulation
+            loss = loss / ACCUMULATE_GRAD_BATCHES  # normalization
             loss.backward()
             
             epoch_loss += loss.item() * ACCUMULATE_GRAD_BATCHES
@@ -343,7 +335,7 @@ def train_bc():
                         os.makedirs("./models", exist_ok=True)
                         model.save_pretrained("./models/bc_alfworld_best")
                         tokenizer.save_pretrained("./models/bc_alfworld_best")
-                        progress_bar.write(f"  New best model saved!")
+                        progress_bar.write(f"  saved new best model")
                     
                     model.train()
             
@@ -369,7 +361,7 @@ def train_bc():
     os.makedirs("./models", exist_ok=True)
     model.save_pretrained("./models/bc_alfworld_final")
     tokenizer.save_pretrained("./models/bc_alfworld_final")
-    print(f"\nTraining complete! Best val loss: {best_val_loss:.4f}")
+    print(f"\nBest val loss: {best_val_loss:.4f}")
 
 if __name__ == "__main__":
     train_bc()

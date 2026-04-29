@@ -14,6 +14,7 @@ from tqdm import tqdm
 from environment import VerbalizedALFWorld
 from utils import format_context
 
+# BaseExpertDataset takes from bc_train.py but is now shared by all baselines
 
 class BaseExpertDataset(Dataset):
     """
@@ -25,7 +26,6 @@ class BaseExpertDataset(Dataset):
                  load_path=None, include_feedback=False, feedback_data=None):
         self.context_window = context_window
         
-        # Try to load from disk first
         if load_path and os.path.exists(load_path):
             print(f"Loading existing dataset from {load_path}")
             self.load(load_path)
@@ -33,18 +33,15 @@ class BaseExpertDataset(Dataset):
                 self.train_examples.extend(feedback_data)
             return
         
-        # Otherwise collect new data
         self.examples = []
         
         print(f"Collecting {num_episodes} expert demonstrations...")
         for episode in tqdm(range(num_episodes)):
             instruction, obs, actions = env.reset()
             
-            # Flatten actions if needed
             if actions and isinstance(actions[0], list):
                 actions = actions[0]
             
-            # Store trajectory history for context window
             trajectory = []
             done = False
             step = 0
@@ -75,14 +72,13 @@ class BaseExpertDataset(Dataset):
                     # Take the expert action
                     instruction, obs, reward, done, actions = env.step(expert_action)
                     
-                    # Flatten actions after step
                     if actions and isinstance(actions[0], list):
                         actions = actions[0]
                     
                     step += 1
                     continue
                 
-                # Fallback: take random action if expert action not available/invalid
+                # Take random action if expert action not available/invalid
                 if actions:
                     print("expert action not available, taking random")
                     first_action = actions[0] if isinstance(actions[0], str) else actions[0][0]
@@ -116,7 +112,6 @@ class BaseExpertDataset(Dataset):
         raise NotImplementedError("Subclasses must implement _get_expert_action()")
     
     def _format_context(self, instruction, trajectory, current_obs):
-        """Format the observation with most recent steps"""
         if not trajectory:
             return f"Task: {instruction}\n\nCurrent observation: {current_obs}"
         
@@ -130,7 +125,6 @@ class BaseExpertDataset(Dataset):
         return f"Task: {instruction}\n\nPrevious steps:\n{context_str}\nCurrent observation: {obs_short}"
     
     def save(self, path):
-        """Save collected examples to disk"""
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, 'wb') as f:
             pickle.dump({
@@ -141,7 +135,6 @@ class BaseExpertDataset(Dataset):
         print(f"Saved dataset to {path}")
     
     def load(self, path):
-        """Load saved examples from disk"""
         with open(path, 'rb') as f:
             data = pickle.load(f)
         self.train_examples = data['train_examples']
@@ -189,20 +182,15 @@ def train_imitation_learning(dataset_class, model_name, dataset_path, model_save
     Generic training function for imitation learning baselines (BC, ActPred, LFM)
     """
     
-    # Create environment
-    print("Initializing environment...")
     env = VerbalizedALFWorld(split='train')
     
-    # Load or collect dataset
     dataset = dataset_class(env, num_episodes=num_episodes, max_steps=max_steps,
                             context_window=context_window, load_path=dataset_path, use_gpu=use_gpu)
     dataset.save(dataset_path)
     
-    # Create data loaders
     train_loader = dataset.get_train_loader(batch_size)
     val_loader = dataset.get_val_loader(batch_size)
     
-    # Load model
     print(f"Loading model: {model_name}")
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
@@ -222,7 +210,7 @@ def train_imitation_learning(dataset_class, model_name, dataset_path, model_save
     )
 
     # Training loop
-    print(f"Starting training for {num_epochs} epochs...")
+    print(f"Starting training for {num_epochs} epochs")
     model.train()
     
     best_val_loss = float('inf')
@@ -264,7 +252,6 @@ def train_imitation_learning(dataset_class, model_name, dataset_path, model_save
                 global_step += 1
                 
                 if global_step % val_interval == 0 and len(val_loader) > 0:
-                    print("got to validation")
                     model.eval()
                     val_losses = []
                     with torch.no_grad():
@@ -294,7 +281,7 @@ def train_imitation_learning(dataset_class, model_name, dataset_path, model_save
                         os.makedirs(model_save_path, exist_ok=True)
                         model.save_pretrained(f"{model_save_path}_best")
                         tokenizer.save_pretrained(f"{model_save_path}_best")
-                        progress_bar.write(f"  New best model saved!")
+                        progress_bar.write(f"  saved new best model")
                     
                     model.train()
             
@@ -302,9 +289,8 @@ def train_imitation_learning(dataset_class, model_name, dataset_path, model_save
         
         avg_epoch_loss = epoch_loss / len(train_loader)
         print(f"Epoch {epoch+1} average loss: {avg_epoch_loss:.4f}")
-    
-    # Save final model
-    os.makedirs(model_save_path, exist_ok=True)
+        os.makedirs(model_save_path, exist_ok=True)
+
     model.save_pretrained(f"{model_save_path}_final")
     tokenizer.save_pretrained(f"{model_save_path}_final")
-    print(f"\nTraining complete! Best val loss: {best_val_loss:.4f}")
+    print(f"\nBest val loss: {best_val_loss:.4f}")

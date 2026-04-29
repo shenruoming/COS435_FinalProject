@@ -21,17 +21,14 @@ class VerbalizedALFWorld:
         self._expert_step_idx = 0
         self._gold_action = None
 
-        # Set data path
         data_path = os.path.expanduser('~/COS435_FinalProject/data')
         os.environ['ALFWORLD_DATA'] = data_path
 
-        # Create data directory
         os.makedirs(data_path, exist_ok=True)
         
-        # Path to your config file
+        # Path to config file
         config_path = Path.home() / 'COS435_FinalProject' / 'configs' / 'alfworld_config.yaml'
         
-        # Set sys.argv for ALFWorld's config loader
         sys.argv = [sys.argv[0], str(config_path)]
         
         # Load config using ALFWorld's loader
@@ -40,21 +37,20 @@ class VerbalizedALFWorld:
         print("Config keys:", self.config.keys())  
         print("Full config:", self.config)  
         
-        # Override split-specific settings
+        # Override split-specific settings; see verbalized_envs/verbenvs/alfworld.py
         if split == 'train':
             self.config['env']['goal_desc_human_anns_prob'] = 0.0
         else:
             self.config['env']['goal_desc_human_anns_prob'] = 1.0
         
-        # Create the environment
         from alfworld.agents.environment import get_environment
         env_type = self.config['env'].get('type', 'AlfredTWEnv')
         self._env = get_environment(env_type)(self.config, train_eval=split)
         self._env = self._env.init_env(batch_size=1)
         self.current_instruction = None
 
+    # Return number of games in this split 
     def num_settings(self):
-        """Return number of available environments in current split."""
         if hasattr(self._env, 'num_games'):
             return self._env.num_games
         elif self.split == 'train':
@@ -68,9 +64,8 @@ class VerbalizedALFWorld:
         obs, info = self._env.reset()
         obs_text = obs[0]
         
-        # Initialize expert plan from info
         raw_plan = info.get('extra.expert_plan', [])
-        # Flatten: [['look']] -> ['look']
+    
         if raw_plan and isinstance(raw_plan, list) and len(raw_plan) > 0:
             if isinstance(raw_plan[0], list):
                 self._expert_plan = [item[0] for item in raw_plan if item]
@@ -82,7 +77,6 @@ class VerbalizedALFWorld:
         self._expert_step_idx = 0
         self._gold_action = self._expert_plan[self._expert_step_idx] if self._expert_plan else None
         
-        # Parse instruction and observation
         lines = obs_text.strip().split('\n')
         instruction = ""
         verb_lines = []
@@ -95,7 +89,6 @@ class VerbalizedALFWorld:
         self.current_instruction = instruction
         verbalized_obs = '\n'.join(verb_lines)
         
-        # Flatten admissible actions
         admissible_actions = info.get('admissible_commands', [])
         if admissible_actions and isinstance(admissible_actions[0], list):
             admissible_actions = admissible_actions[0]
@@ -103,17 +96,16 @@ class VerbalizedALFWorld:
         return self.current_instruction, verbalized_obs, admissible_actions
 
     def step(self, action):
-        # Ensure action is a string
         if isinstance(action, list):
             action = action[0] if action else "look"
         
         obs, reward, done, info = self._env.step([action])
         obs_text = obs[0]
         
-        # Update expert plan from info (flatten if needed)
+        # Update expert plan from info 
         if 'extra.expert_plan' in info:
             raw_plan = info.get('extra.expert_plan', [])
-            # Flatten: [['look']] -> ['look']
+            
             if raw_plan and isinstance(raw_plan, list) and len(raw_plan) > 0:
                 if isinstance(raw_plan[0], list):
                     self._expert_plan = [item[0] for item in raw_plan if item]
@@ -130,17 +122,14 @@ class VerbalizedALFWorld:
         else:
             self._gold_action = None
         
-        # Parse observation
         lines = obs_text.strip().split('\n')
         verb_lines = [line for line in lines if 'Your task is to:' not in line]
         verbalized_obs = '\n'.join(verb_lines)
         
-        # Flatten admissible actions
         admissible_actions = info.get('admissible_commands', [])
         if admissible_actions and isinstance(admissible_actions[0], list):
             admissible_actions = admissible_actions[0]
         
-        # Handle reward and done (batch returns)
         reward_value = reward[0] if isinstance(reward, tuple) else reward
         done_value = done[0] if isinstance(done, tuple) else done
         
@@ -151,7 +140,6 @@ class VerbalizedALFWorld:
         return observation
 
     def get_expert_action(self):
-        """Return the current expert action as a string"""
         if self._gold_action:
             # If it's a list of lists, extract the inner string
             if isinstance(self._gold_action, list):
@@ -164,7 +152,7 @@ class VerbalizedALFWorld:
         return None
 
 if __name__ == "__main__":
-    print("Testing ALFWorld verbalization!")
+    print("Testing ALFWorld verbalization")
     env = VerbalizedALFWorld(split='train')
     instruction, obs, admissible_actions = env.reset()
     print("Instruction:", instruction)
