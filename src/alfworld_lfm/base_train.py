@@ -1,6 +1,6 @@
 """
-Base classes for imitation learning baselines (BC, ACTPRED, LFM)
-Shared functionality to avoid code duplication
+Base classes for imitation learning baselines (BC, ActPred, LFM)
+We have this shared functionality to avoid code duplication
 """
 
 import os
@@ -108,9 +108,9 @@ class BaseExpertDataset(Dataset):
     
     def _get_expert_action(self, env, instruction, obs, actions, trajectory):
         """
-        To be implemented by subclasses.
+        We implement this in our subclasses
         BC: returns env.get_expert_action()
-        ACTPRED: returns GPT-4 query result
+        ActPred: returns Mistral-7B query result
         LFM: returns LFM prediction
         """
         raise NotImplementedError("Subclasses must implement _get_expert_action()")
@@ -186,8 +186,7 @@ def train_imitation_learning(dataset_class, model_name, dataset_path, model_save
                               learning_rate=5e-5, val_interval=200, grad_clip=5.0,
                               max_len_input=2048, max_len_output=16, use_gpu=True):
     """
-    Generic training function for imitation learning baselines.
-    Works for BC, ACTPRED, and LFM.
+    Generic training function for imitation learning baselines (BC, ActPred, LFM)
     """
     
     # Create environment

@@ -1,5 +1,5 @@
 """
-ACTPRED Baseline - uses Mistral LLM to predict actions directly
+ActPred Baseline - uses Mistral LLM to predict actions directly
 """
 
 import os
@@ -9,7 +9,8 @@ from llm_critic import LLM_Critic
 
 
 class ACTPREDDataset(BaseExpertDataset):
-    """ACTPRED: Uses Mistral LLM to predict actions."""
+    """ActPred: Uses Mistral LLM to predict actions. 
+    Paper uses GPT-4 but we use Mistral-7B for cost reasons."""
     
     def __init__(self, env, num_episodes=500, max_steps=50, context_window=20, 
                  load_path=None, use_gpu=True):
@@ -19,7 +20,7 @@ class ACTPREDDataset(BaseExpertDataset):
         
         # Load Mistral model
         print(f"Loading Mistral model via LLM_Critic...")
-        self.llm = LLM_Critic(use_gpu=use_gpu)
+        self.llm = LLM_Critic()
         print("Mistral ready!")
         
         # Call parent to collect data

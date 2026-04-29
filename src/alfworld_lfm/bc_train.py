@@ -1,6 +1,5 @@
 """
-Behavioral Cloning baseline from paper Section 5.3
-Paper: 10k steps, batch 20, lr 5e-5, early stopping
+Behavioral Cloning baseline with hyperparameters from paper Section 5.3
 """
 
 import os
@@ -173,10 +172,9 @@ class ExpertDataset(Dataset):
 
 
 def train_bc():
-    """Train BC baseline with paper hyperparameters"""
+    """Train BC baseline; see bc.yaml from LFM Github page"""
     
     # Paper hyperparameters (Section 5.3)
-    # See config files from authors' GitHub
     MODEL_NAME = "google/flan-t5-large"  # 770M
     BATCH_SIZE = 20  
     ACCUMULATE_GRAD_BATCHES = 10
@@ -189,6 +187,7 @@ def train_bc():
     MAX_LEN_INPUT = 2048
     MAX_LEN_OUTPUT = 16
     
+    # We checkpoint to allow resuming training / save intermediate models
     CHECKPOINT_DIR = "./src/alfworld_lfm/models/checkpoints"
     CHECKPOINT_EVERY = 500
     RESUME_CHECKPOINT = "./src/alfworld_lfm/models/checkpoints/latest.pt"  
@@ -229,7 +228,7 @@ def train_bc():
 
     optimizer = AdamW(model.parameters(), lr=LEARNING_RATE)
     
-    # Paper uses learning rate scheduler
+    # Paper uses learning rate scheduler in train_bc.py, confgiure_optimizers()
     from transformers import get_linear_schedule_with_warmup
     scheduler = get_linear_schedule_with_warmup(
         optimizer, 
@@ -271,7 +270,7 @@ def train_bc():
             inputs_text = [b['input'] for b in batch]
             targets_text = [b['target'] for b in batch]
             
-            # Tokenize inputs (max_len=2048 from config)
+            # Tokenize inputs (max_len=2048 from bc.yaml config file)
             inputs = tokenizer(
                 inputs_text,
                 padding=True,
@@ -280,7 +279,7 @@ def train_bc():
                 return_tensors='pt'
             ).to(device)
             
-            # Tokenize targets (max_len=16 from config)
+            # Tokenize targets (max_len=16 from bc.yaml config file)
             targets = tokenizer(
                 targets_text,
                 padding=True,
