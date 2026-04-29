@@ -22,7 +22,11 @@ class VerbalizedALFWorld:
         self._gold_action = None
 
         # Set data path
-        data_path = os.path.expanduser('~/COS435/COS435_FinalProject/data')
+        # At the top of __init__ in environment.py
+        cluster_path = os.path.expanduser('~/COS435_FinalProject/data')
+        mac_path = os.path.expanduser('~/COS435/COS435_FinalProject/data')
+        data_path = cluster_path if os.path.exists(cluster_path) else mac_path
+
         os.environ['ALFWORLD_DATA'] = data_path
 
         # Create data directory
