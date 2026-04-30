@@ -111,19 +111,6 @@ class BaseExpertDataset(Dataset):
         """
         raise NotImplementedError("Subclasses must implement _get_expert_action()")
     
-    def _format_context(self, instruction, trajectory, current_obs):
-        if not trajectory:
-            return f"Task: {instruction}\n\nCurrent observation: {current_obs}"
-        
-        context_str = ""
-        for i, step in enumerate(trajectory):
-            obs_short = step['obs'][:300] + "..." if len(step['obs']) > 300 else step['obs']
-            context_str += f"Step {i+1}: {obs_short}\nAction: {step['action']}\n\n"
-        
-        obs_short = current_obs[:300] + "..." if len(current_obs) > 300 else current_obs
-        
-        return f"Task: {instruction}\n\nPrevious steps:\n{context_str}\nCurrent observation: {obs_short}"
-    
     def save(self, path):
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, 'wb') as f:
