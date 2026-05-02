@@ -44,21 +44,27 @@ class Policy:
         all_losses = []
         all_labels = []
 
+        max_length=min(self.max_len_input, self.tokenizer.model_max_length)
+
         with torch.no_grad():
             # Encode input once instead of repeating per batch
             encoder_inputs = self.tokenizer(
                 inp,
-                max_length=self.max_len_input,
+                max_length=max_length,
                 truncation=True,
-                return_tensors="pt"
+                return_tensors="pt",
+                padding='max_length'
             )
             encoder_inputs = {k: v.to(self.device) for k, v in encoder_inputs.items()}
+
+            # print(f"Encoder input: {inp}")
 
             encoder_outputs = self.model.encoder(
                 input_ids=encoder_inputs["input_ids"],
                 attention_mask=encoder_inputs["attention_mask"],
             )
 
+            # print(f"Encoder output: {encoder_outputs}")
             for i in range(0, len(admissible_actions), eval_batch_size):
                 aa = admissible_actions[i:i+eval_batch_size]
                 batch_size = len(aa)
@@ -71,7 +77,7 @@ class Policy:
                     aa,
                     max_length=self.max_len_output,
                     truncation=True,
-                    padding=True,  # pad to longest in batch, not max_length
+                    padding='max_length',
                     return_tensors="pt"
                 )
                 targets = {k: v.to(self.device) for k, v in targets.items()}
@@ -99,7 +105,6 @@ class Policy:
         # Concatenate and normalize
         losses = torch.cat(all_losses, dim=0)
         labels = torch.cat(all_labels, dim=0)
-
         norm_losses = losses.sum(dim=1)
         if aggregation == 'mean':
             norm_losses /= (labels != -100).sum(dim=1).float()
