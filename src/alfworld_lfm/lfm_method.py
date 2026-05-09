@@ -14,7 +14,8 @@ def create_desirable_behavior_dataset():
                     data.append(dict(input=ex['prompt'], target=ex['action']))
     return data
 
-def train_model_with_feedback(feedback_data):
+# See base_train.py for train_imitation learning, hyperparameters adopted from bc.yaml in original codebase
+def train_model_with_feedback(feedback_data): 
     feedback_data = create_desirable_behavior_dataset()
     train_imitation_learning(
         dataset_class=BCDataset,

@@ -35,7 +35,7 @@ class BaseExpertDataset(Dataset):
         
         self.examples = []
         
-        print(f"Collecting {num_episodes} expert demonstrations...")
+        print(f"Collecting {num_episodes} expert demonstrations")
         for episode in tqdm(range(num_episodes)):
             instruction, obs, actions = env.reset()
             

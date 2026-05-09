@@ -190,7 +190,6 @@ def train_bc():
     
     DATASET_PATH = "./src/alfworld_lfm/data/bc_dataset_500eps.pkl"
     
-    print("Initializing environment...")
     env = VerbalizedALFWorld(split='train')
     
     dataset = ExpertDataset(

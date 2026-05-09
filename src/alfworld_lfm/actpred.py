@@ -20,9 +20,7 @@ class ACTPREDDataset(BaseExpertDataset):
         self.env = env
         
         # Load Mistral model
-        print(f"Loading Mistral model via LLM_Critic...")
         self.llm = LLM_Critic()
-        print("Mistral ready!")
         
         # Call parent to collect data
         super().__init__(env, num_episodes, max_steps, context_window, load_path)
