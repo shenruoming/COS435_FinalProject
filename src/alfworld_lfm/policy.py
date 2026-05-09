@@ -7,8 +7,9 @@ from typing import List, Dict, Tuple, Optional
 from torch.distributions import Categorical
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 from pathlib import Path
+import pdb
 
-# bc policy (parallels LMAgent from original codebase)
+# BC policy (parallels LMAgent from original codebase)
 class Policy:
     
     def __init__(
@@ -57,6 +58,9 @@ class Policy:
             )
             encoder_inputs = {k: v.to(self.device) for k, v in encoder_inputs.items()}
 
+            # Check encoder inputs
+            pdb.set_trace()
+
             # print(f"Encoder input: {inp}")
 
             encoder_outputs = self.model.encoder(
@@ -67,6 +71,9 @@ class Policy:
             # print(f"Encoder output: {encoder_outputs}")
             for i in range(0, len(admissible_actions), eval_batch_size):
                 aa = admissible_actions[i:i+eval_batch_size]
+
+                pdb.set_trace()
+
                 batch_size = len(aa)
 
                 # Expand encoder outputs to batch size
@@ -93,12 +100,18 @@ class Policy:
                     labels=labels,
                 )
 
+                # Inspect outputs.logits
+                pdb.set_trace()
+
                 # Per-token loss computation
                 losses = F.cross_entropy(
                     outputs.logits.view(-1, outputs.logits.size(-1)),
                     labels.view(-1),
                     reduction='none'
                 ).reshape(outputs.logits.size(0), -1)
+
+                # Check losses
+                pdb.set_trace()
 
                 all_losses.append(losses)
 

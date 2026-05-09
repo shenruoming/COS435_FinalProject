@@ -169,6 +169,7 @@ def train_bc():
     """Train BC baseline; see bc.yaml from LFM Github page"""
     
     # Paper hyperparameters (Section 5.3)
+    # See bc.yaml in original codebase
     MODEL_NAME = "google/flan-t5-large"  # 770M
     BATCH_SIZE = 20  
     ACCUMULATE_GRAD_BATCHES = 10

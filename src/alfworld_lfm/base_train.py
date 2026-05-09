@@ -90,6 +90,7 @@ class BaseExpertDataset(Dataset):
                     break
         
         # Split into train/val (80/20)
+        # See 5.3 in paper - Experiment Details
         np.random.seed(42)
         indices = np.random.permutation(len(self.examples))
         split_idx = int(0.8 * len(self.examples))
@@ -104,7 +105,7 @@ class BaseExpertDataset(Dataset):
     
     def _get_expert_action(self, env, instruction, obs, actions, trajectory):
         """
-        We implement this in our subclasses
+        We implement this in our subclasses 
         BC: returns env.get_expert_action()
         ActPred: returns Mistral-7B query result
         LFM: returns LFM prediction
@@ -159,12 +160,12 @@ class BaseExpertDataset(Dataset):
         
         return DataLoader(SimpleDataset(self.val_examples), batch_size=batch_size, collate_fn=collate_fn)
 
-
+# For these default configs see conf / bc.yaml in original codebase
 def train_imitation_learning(dataset_class, model_name, dataset_path, model_save_path, 
                               num_episodes=500, max_steps=50, context_window=20,
                               num_epochs=20, batch_size=20, accumulate_grad_batches=10,
                               learning_rate=5e-5, val_interval=200, grad_clip=5.0,
-                              max_len_input=2048, max_len_output=16, use_gpu=True):
+                              max_len_input=2048, max_len_output=16):
     """
     Generic training function for imitation learning baselines (BC, ActPred, LFM)
     """
@@ -172,7 +173,7 @@ def train_imitation_learning(dataset_class, model_name, dataset_path, model_save
     env = VerbalizedALFWorld(split='train')
     
     dataset = dataset_class(env, num_episodes=num_episodes, max_steps=max_steps,
-                            context_window=context_window, load_path=dataset_path, use_gpu=use_gpu)
+                            context_window=context_window, load_path=dataset_path)
     dataset.save(dataset_path)
     
     train_loader = dataset.get_train_loader(batch_size)

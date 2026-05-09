@@ -63,19 +63,22 @@ class VerbalizedALFWorld:
     def reset(self):
         obs, info = self._env.reset()
         obs_text = obs[0]
+
+        self._last_info = info
         
         raw_plan = info.get('extra.expert_plan', [])
+        self._expert_plan = []
     
-        if raw_plan and isinstance(raw_plan, list) and len(raw_plan) > 0:
-            if isinstance(raw_plan[0], list):
-                self._expert_plan = [item[0] for item in raw_plan if item]
-            else:
-                self._expert_plan = raw_plan
-        else:
-            self._expert_plan = []
+        if raw_plan and isinstance(raw_plan, list):
+            for item in raw_plan:
+                if item:
+                    if isinstance(item, list):
+                        self._expert_plan.append(item[0] if item else None)
+                    else:
+                        self._expert_plan.append(item)
         
         self._expert_step_idx = 0
-        self._gold_action = self._expert_plan[self._expert_step_idx] if self._expert_plan else None
+        self._gold_action = self._expert_plan[0] if self._expert_plan else None
         
         lines = obs_text.strip().split('\n')
         instruction = ""
@@ -105,18 +108,18 @@ class VerbalizedALFWorld:
         # Update expert plan from info 
         if 'extra.expert_plan' in info:
             raw_plan = info.get('extra.expert_plan', [])
-            
-            if raw_plan and isinstance(raw_plan, list) and len(raw_plan) > 0:
-                if isinstance(raw_plan[0], list):
-                    self._expert_plan = [item[0] for item in raw_plan if item]
-                else:
-                    self._expert_plan = raw_plan
-            else:
-                self._expert_plan = []
-            self._expert_step_idx = 0  # Reset index for new plan
+            self._expert_plan = []
+            if raw_plan and isinstance(raw_plan, list):
+                for item in raw_plan:
+                    if item:
+                        if isinstance(item, list):
+                            self._expert_plan.append(item[0] if item else None)
+                        else:
+                            self._expert_plan.append(item)
+            self._expert_step_idx = 0 
         
         # Get current expert action based on step index
-        if hasattr(self, '_expert_plan') and self._expert_plan and self._expert_step_idx < len(self._expert_plan):
+        if self._expert_plan and self._expert_step_idx < len(self._expert_plan):
             self._gold_action = self._expert_plan[self._expert_step_idx]
             self._expert_step_idx += 1
         else:
@@ -143,11 +146,7 @@ class VerbalizedALFWorld:
         if self._gold_action:
             # If it's a list of lists, extract the inner string
             if isinstance(self._gold_action, list):
-                if len(self._gold_action) > 0:
-                    if isinstance(self._gold_action[0], list):
-                        return self._gold_action[0][0] if self._gold_action[0] else None
-                    else:
-                        return self._gold_action[0] if self._gold_action else None
+                return self._gold_action[0] if self._gold_action else None
             return self._gold_action
         return None
 

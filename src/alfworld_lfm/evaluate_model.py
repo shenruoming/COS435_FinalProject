@@ -2,6 +2,7 @@
 Evaluate trained BC/ACTPRED/LFM models on ALFWorld.
 Computes task completion rate (paper's main metric from Table 3).
 Saves trajectories for analysis.
+Analogous to evaluate_bc in original codebase.
 """
 
 import os
