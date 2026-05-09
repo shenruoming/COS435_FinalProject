@@ -104,7 +104,7 @@ class ACTPREDDataset(BaseExpertDataset):
             del self.llm
         torch.cuda.empty_cache()
 
-
+# See configs in experiments folder of original codebase for hyperparameters
 def train_actpred():
     train_imitation_learning(
         dataset_class=ACTPREDDataset,
