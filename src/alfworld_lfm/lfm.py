@@ -262,7 +262,7 @@ class LanguageFeedbackModel:
         self.model.train()
         return best_val_loss
 
-
+    # adapted from original codebase
     def choose_action(self, batch, max_len_output=16, aggregation='mean'):
         # Extract inputs and targets
         inputs_text = [b['input'] for b in batch]
